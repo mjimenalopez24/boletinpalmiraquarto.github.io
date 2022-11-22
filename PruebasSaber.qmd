@@ -1,0 +1,2550 @@
+
+<!-- CARGAR BASES DE PRUEBA SABER PRO -->
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# librerías requeridas
+library(UnalData)
+library(UnalR)
+library(tidyverse)
+library(magrittr)
+
+SaberPro <- UnalData::SaberPro %>% filter(SEDE_NOMBRE_ADM %in% c('Palmira')) %>%
+  mutate(CAT_EDAD = case_when(EDAD_MOD >= 18 & EDAD_MOD <= 20 ~ '18 a 20 años',
+                              EDAD_MOD >= 21 & EDAD_MOD <= 25 ~ '21 a 25 años',
+                              EDAD_MOD >= 26 ~ '26 o más años',
+                              is.na(EDAD_MOD) ~ 'Sin información'),
+         TIPO_COL = ifelse(is.na(TIPO_COL), "Sin información", TIPO_COL))
+
+# Base para graficos por componentes
+PuntComp <- SaberPro %>% select(YEAR,SEXO,CAT_EDAD,TIPO_COL,PROGRAMA,ESTRATO,NACIONALIDAD,
+                    MOD_ADM,PBM,AREAC_SNIES,PUNT_COMP_CIUD,PUNT_COMU_ESCR,PUNT_INGLES,
+                    PUNT_LECT_CRIT,PUNT_RAZO_CUANT) %>%
+  rename("Competencias ciudadanas"=PUNT_COMP_CIUD, "Comunicación escrita"=PUNT_COMU_ESCR,
+         "Inglés"=PUNT_INGLES, "Lectura crítica"=PUNT_LECT_CRIT,
+         "Razonamiento cuantitativo"=PUNT_RAZO_CUANT) %>%
+  pivot_longer(c("Competencias ciudadanas","Comunicación escrita",
+                 "Inglés","Lectura crítica","Razonamiento cuantitativo"), 
+               names_to = "COMPONENTE", values_to = "PUNTAJE") 
+
+ano <- max(SaberPro$YEAR)
+
+
+tema <- 5
+```
+
+# Pruebas Saber Pro
+
+Este capítulo presenta el consolidado de los resultados obtenidos en las Pruebas Saber Pro en la **Sede Palmira** de la Universidad Nacional de Colombia. A continuación, se presenta una breve descripción de las secciones que hacen parte de este capítulo. 
+
+
+<h3>**Secciones**</h3> 
+
+
+* [Puntaje global](#PuntGlobal): contiene la información oficial del puntaje global obtenido en prueba en la **Sede Palmira** de la Universidad Nacional de Colombia.
+
+* [Puntaje por componentes](#PuntComp): contiene la información oficial del puntaje para cada uno de los componentes: [Razonamiento cuantitativo](#RazoCuant), [Inglés](#Ingles), [Lectura crítica](#Lectura), [Competencias ciudadanas](#CompCiu), [Cominucación escrita](#ComuEsc) en la **Sede Palmira** de la Universidad Nacional de Colombia. Además de la [comparación](#Comparacion) de dichos componentes por variables de interés.
+
+
+## Puntaje global {#PuntGlobal}
+
+### Evolución histórica del puntaje promedio global
+
+A continuación, la Figura \@ref(fig:F1Saber), presenta la evolución histórica por año -*desde el periodo 2016*-, del puntaje global. La figura \@ref(fig:FSEDESaber) presenta la comparación entre sedes del puntaje global por años.
+
+```{r F1Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Msj <- "Información disponible desde 2016"
+
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNTAJE_GLOBAL,
+  grupo1   = YEAR,
+  outliers = TRUE,
+  ylim     = c(0, 300),
+  titulo   = "Puntaje global",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r FSEDESaber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = UnalData::SaberPro,
+  variable = PUNTAJE_GLOBAL,
+  grupo1 = YEAR,
+  grupo2   = SEDE_NOMBRE_ADM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Comparación entre sedes del puntaje global",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Sede:", hc.Tema = tema)
+)
+```
+
+<br>
+
+### Información por sexo
+
+A continuación, las figuras \@ref(fig:F2Saber) y \@ref(fig:F3Saber) presentan, respectivamente, la evolución histórica del puntaje global -*por año*-, y el comportamiento actual del puntaje promedio global y por componentes según el sexo biológico.
+
+```{r F2Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNTAJE_GLOBAL,
+  grupo1   = YEAR,
+  grupo2 = SEXO,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje global",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Sexo:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F3Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+  Plot.Radar(
+    datos     = subset(SaberPro, YEAR == ano),
+    categoria = SEXO,
+    variables = vars("GLOBAL"=PUNTAJE_GLOBAL,
+                     "COMPETENIAS CIUDADANAS"=PUNT_COMP_CIUD,
+                     "COMUNICACIÓN ESCRITA"=PUNT_COMU_ESCR,
+                     "INGLES"=PUNT_INGLES,
+                     "LECTURA CRITICA"=PUNT_LECT_CRIT,
+                     "RAZONAMIENTO CUANTITATIVO"=PUNT_RAZO_CUANT),
+    rango = c(0, NaN),
+    estadistico = "Promedio",
+    libreria = "plotly",
+    titulo = paste0("Puntajes promedio globales y por componentes según el sexo (año ",ano, ")"),
+    estilo = list(ply.LegendTitle = "Sexo:", ply.Relleno = "tonext", e.Tema = tema)
+  )
+```
+
+<br>
+
+```{r F4Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_GLOBAL1 <- SaberPro %>%
+  select(YEAR, SEXO, PUNTAJE_GLOBAL) %>% 
+  group_by(YEAR, SEXO) %>% 
+  summarise("Puntaje Promedio" = round(mean(PUNTAJE_GLOBAL),1),
+            "Desv. estándar" = round(sd(PUNTAJE_GLOBAL),1), 
+            "Total"=n()) %>% 
+  ungroup() %>% 
+  mutate(across(where(is.character), replace_na, replace = "SIN INFORMACIÓN")) 
+
+UnalR::Tabla.General(
+  datos = TABLA_PUNT_GLOBAL1,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio global por sexo y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Sexo","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+### Información por edad
+
+A continuación, las figuras \@ref(fig:F5Saber) y \@ref(fig:F6Saber) presentan, respectivamente, la evolución histórica del puntaje global -*por año*-, y el comportamiento actual del puntaje global y por componentes según el rango de edad.
+
+```{r F5Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNTAJE_GLOBAL,
+  grupo1   = YEAR,
+  grupo2 = CAT_EDAD,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje global",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Edad:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F6Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+  Plot.Radar(
+    datos     = subset(SaberPro, YEAR == ano),
+    categoria = CAT_EDAD,
+    variables = vars("GLOBAL"=PUNTAJE_GLOBAL,
+                     "COMPETENIAS CIUDADANAS"=PUNT_COMP_CIUD,
+                     "COMUNICACIÓN ESCRITA"=PUNT_COMU_ESCR,
+                     "INGLES"=PUNT_INGLES,
+                     "LECTURA CRITICA"=PUNT_LECT_CRIT,
+                     "RAZONAMIENTO CUANTITATIVO"=PUNT_RAZO_CUANT),
+    rango = c(0, NaN),
+    estadistico = "Promedio",
+    libreria = "plotly",
+    titulo = paste0("Puntajes promedio globales y por componentes según la edad (año ",ano, ")"),
+    estilo = list(ply.LegendTitle = "Edad:", ply.Relleno = "tonext", e.Tema = tema)
+  )
+```
+
+<br>
+
+```{r F7Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.show='hold', fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_GLOBAL2 <- SaberPro %>% 
+  select(YEAR, CAT_EDAD, PUNTAJE_GLOBAL) %>%
+  group_by(YEAR, CAT_EDAD) %>% 
+  summarise("Puntaje Promedio" = round(mean(PUNTAJE_GLOBAL),1),
+            "Desv. estándar" = round(sd(PUNTAJE_GLOBAL),1),
+            "Total"=n()) %>%
+  ungroup() %>% 
+  mutate(across(where(is.character), replace_na, replace = "SIN INFORMACIÓN")) 
+
+DT::datatable(TABLA_PUNT_GLOBAL2, caption = "Puntaje promedio global por edad y año", colnames = c("Año", "Edad","Puntaje Promedio","Desv. estándar","Total"))
+
+UnalR::Tabla.General(
+  datos = TABLA_PUNT_GLOBAL2,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio global por edad y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Edad","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+### Información por tipo de colegio
+
+A continuación, las figuras \@ref(fig:F8Saber) y \@ref(fig:F9Saber) presentan, respectivamente, la evolución histórica del puntaje global -*por año*-, y el comportamiento actual del puntaje promedio global y por componentes según el tipo de colegio.
+
+```{r F8Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNTAJE_GLOBAL,
+  grupo1   = YEAR,
+  grupo2 = TIPO_COL,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje global",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Tipo de colegio:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F9Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+  Plot.Radar(
+    datos     = subset(SaberPro, YEAR == ano),
+    categoria = TIPO_COL,
+    variables = vars("GLOBAL"=PUNTAJE_GLOBAL,
+                     "COMPETENIAS CIUDADANAS"=PUNT_COMP_CIUD,
+                     "COMUNICACIÓN ESCRITA"=PUNT_COMU_ESCR,
+                     "INGLES"=PUNT_INGLES,
+                     "LECTURA CRITICA"=PUNT_LECT_CRIT,
+                     "RAZONAMIENTO CUANTITATIVO"=PUNT_RAZO_CUANT),
+    rango = c(0, NaN),
+    estadistico = "Promedio",
+    libreria = "plotly",
+    titulo = paste0("Puntajes promedio globales y por componentes según el tipo de colegio (año ",ano, ")"),
+    estilo = list(ply.LegendTitle = "Tipo de colegio:", ply.Relleno = "tonext", e.Tema = tema)
+  )
+```
+
+<br>
+
+```{r F10Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_GLOBAL3 <- SaberPro %>% 
+  select(YEAR, TIPO_COL, PUNTAJE_GLOBAL) %>% 
+  group_by(YEAR, TIPO_COL) %>% 
+  summarise("Puntaje Promedio" = round(mean(PUNTAJE_GLOBAL),1), 
+            "Desv. estándar" = round(sd(PUNTAJE_GLOBAL),1), 
+            "Total"=n()) %>% 
+  ungroup() %>% 
+  mutate(across(where(is.character), replace_na, replace = "SIN INFORMACIÓN"))
+
+reactable::reactable(TABLA_PUNT_GLOBAL3, filterable = TRUE, sortable = TRUE,
+                     highlight = TRUE,
+                      defaultColDef = reactable::colDef(align = "center",
+                                                        headerStyle = list(background = "#4CFF49")))
+
+UnalR::Tabla.General(
+  datos = TABLA_PUNT_GLOBAL3,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio global por tipo de colegio y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Tipo de colegio","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+### Información por modalidad de admisión
+
+A continuación, las figuras \@ref(fig:F11Saber) y \@ref(fig:F12Saber) presentan, respectivamente, la evolución histórica del puntaje global -*por año*-, y el comportamiento actual del puntaje promedio global y por componentes según la modalidad de admisión.
+
+```{r F11Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNTAJE_GLOBAL,
+  grupo1   = YEAR,
+  grupo2 = MOD_ADM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje global",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Modalidad de admisión:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F12Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+  Plot.Radar(
+    datos     = subset(SaberPro, YEAR == ano),
+    categoria = MOD_ADM,
+    variables = vars("GLOBAL"=PUNTAJE_GLOBAL,
+                     "COMPETENIAS CIUDADANAS"=PUNT_COMP_CIUD,
+                     "COMUNICACIÓN ESCRITA"=PUNT_COMU_ESCR,
+                     "INGLES"=PUNT_INGLES,
+                     "LECTURA CRITICA"=PUNT_LECT_CRIT,
+                     "RAZONAMIENTO CUANTITATIVO"=PUNT_RAZO_CUANT),
+    rango = c(0, NaN),
+    estadistico = "Promedio",
+    libreria = "plotly",
+    titulo = paste0("Puntajes promedio globales y por componentes según la edad (año ",ano, ")"),
+    estilo = list(ply.LegendTitle = "Modalidad de admisión:", ply.Relleno = "tonext", e.Tema = tema)
+  )
+```
+
+<br>
+
+```{r F13Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_GLOBAL4 <- SaberPro %>% 
+  select(YEAR, MOD_ADM, PUNTAJE_GLOBAL) %>% 
+  group_by(YEAR, MOD_ADM) %>% 
+  summarise("Puntaje Promedio" = round(mean(PUNTAJE_GLOBAL),1), 
+            "Desv. estándar" = round(sd(PUNTAJE_GLOBAL),1), 
+            "Total"=n()) %>% 
+  ungroup() %>% 
+  mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_GLOBAL4,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio global por modalidad de admisión y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Modalidad admisión","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+### Información por estrato
+
+A continuación, las figuras \@ref(fig:F14Saber) y \@ref(fig:F15Saber) presentan, respectivamente, la evolución histórica del puntaje global -*por año*-, y el comportamiento actual del puntaje promedio global y por componentes según el estrato socioeconómico.
+
+```{r F14Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNTAJE_GLOBAL,
+  grupo1   = YEAR,
+  grupo2 = ESTRATO,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje global",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Estrato:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F15Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+  Plot.Radar(
+    datos     = subset(SaberPro, YEAR == ano),
+    categoria = ESTRATO,
+    variables = vars("GLOBAL"=PUNTAJE_GLOBAL,
+                     "COMPETENIAS CIUDADANAS"=PUNT_COMP_CIUD,
+                     "COMUNICACIÓN ESCRITA"=PUNT_COMU_ESCR,
+                     "INGLES"=PUNT_INGLES,
+                     "LECTURA CRITICA"=PUNT_LECT_CRIT,
+                     "RAZONAMIENTO CUANTITATIVO"=PUNT_RAZO_CUANT),
+    rango = c(0, NaN),
+    estadistico = "Promedio",
+    libreria = "plotly",
+    titulo = paste0("Puntajes promedio globales y por componentes según el estrato (año ",ano, ")"),
+    estilo = list(ply.LegendTitle = "Estrato:", ply.Relleno = "tonext", e.Tema = tema)
+  )
+```
+
+<br>
+
+```{r F16Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_GLOBAL5 <- SaberPro %>% 
+  select(YEAR, ESTRATO, PUNTAJE_GLOBAL) %>% 
+  group_by(YEAR, ESTRATO) %>% 
+  summarise("Puntaje Promedio" = round(mean(PUNTAJE_GLOBAL),1), 
+            "Desv. estándar" = round(sd(PUNTAJE_GLOBAL),1), 
+            "Total"=n()) %>% 
+  ungroup() %>%
+  mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_GLOBAL5,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio global por estrato y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Estrato","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+### Información por PBM
+
+A continuación, las figuras \@ref(fig:F17Saber) y \@ref(fig:F18Saber) presentan, respectivamente, la evolución histórica del puntaje global -*por año*-, y el comportamiento actual del puntaje promedio global y por componentes según el Puntaje Básico de Matrícula (PBM).
+
+```{r F17Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNTAJE_GLOBAL,
+  grupo1   = YEAR,
+  grupo2 = PBM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje global",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "PBM:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F18Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+  Plot.Radar(
+    datos     = subset(SaberPro, YEAR == ano),
+    categoria = PBM,
+    variables = vars("GLOBAL"=PUNTAJE_GLOBAL,
+                     "COMPETENIAS CIUDADANAS"=PUNT_COMP_CIUD,
+                     "COMUNICACIÓN ESCRITA"=PUNT_COMU_ESCR,
+                     "INGLÉS"=PUNT_INGLES,
+                     "LECTURA CRITICA"=PUNT_LECT_CRIT,
+                     "RAZONAMIENTO CUANTITATIVO"=PUNT_RAZO_CUANT),
+    rango = c(0, NaN),
+    estadistico = "Promedio",
+    libreria = "plotly",
+    titulo = paste0("Puntajes promedio globales y por componentes según el PBM (año ",ano, ")"),
+    estilo = list(ply.LegendTitle = "PBM:", ply.Relleno = "tonext", e.Tema = tema)
+  )
+```
+
+<br>
+
+```{r F19Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_GLOBAL6 <- SaberPro %>% select(YEAR, PBM, PUNTAJE_GLOBAL) %>% group_by(YEAR, PBM) %>% summarise("Puntaje Promedio" = round(mean(PUNTAJE_GLOBAL),1), "Desv. estándar" = round(sd(PUNTAJE_GLOBAL),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_GLOBAL6,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio global por PBM y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "PBM","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+### Información por nacionalidad
+
+A continuación, las figuras \@ref(fig:F20Saber) y \@ref(fig:F21Saber) presentan, respectivamente, la evolución histórica del puntaje global -*por año*-, y el comportamiento actual del puntaje promedio global y por componentes según la nacionalidad.
+
+```{r F20Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNTAJE_GLOBAL,
+  grupo1   = YEAR,
+  grupo2 = NACIONALIDAD,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje global",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Nacionalidad:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F21Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+  Plot.Radar(
+    datos     = subset(SaberPro, YEAR == ano),
+    categoria = NACIONALIDAD,
+    variables = vars("GLOBAL"=PUNTAJE_GLOBAL,
+                     "COMPETENIAS CIUDADANAS"=PUNT_COMP_CIUD,
+                     "COMUNICACIÓN ESCRITA"=PUNT_COMU_ESCR,
+                     "INGLÉS"=PUNT_INGLES,
+                     "LECTURA CRITICA"=PUNT_LECT_CRIT,
+                     "RAZONAMIENTO CUANTITATIVO"=PUNT_RAZO_CUANT),
+    rango = c(0, NaN),
+    estadistico = "Promedio",
+    libreria = "plotly",
+    titulo = paste0("Puntajes promedio globales y por componentes según la nacionalidad (año ",ano, ")"),
+    estilo = list(ply.LegendTitle = "Nacionalidad:", ply.Relleno = "tonext", e.Tema = tema)
+  )
+```
+
+<br>
+
+```{r F22Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_GLOBAL7 <- SaberPro %>% select(YEAR, NACIONALIDAD, PUNTAJE_GLOBAL) %>% group_by(YEAR, NACIONALIDAD) %>% summarise("Puntaje Promedio" = round(mean(PUNTAJE_GLOBAL),1), "Desv. estándar" = round(sd(PUNTAJE_GLOBAL),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_GLOBAL7,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio global por nacionalidad y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Nacionalidad","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+### Información por departamentos y municipios de procedencia
+
+A continuación, la figura \@ref(fig:F23Saber) presenta el mapa actual (último registro) con el puntaje promedio global por departamentos y municipios de procedencia en la **Sede Palmira**.
+
+```{r F23Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+SaberPro %>% filter(YEAR == ano) %$%
+  Plot.Mapa(depto         = COD_DEP_PROC,
+            mpio          = COD_CIU_PROC,
+            variable = PUNTAJE_GLOBAL,
+            estadistico   = "Promedio",
+            tipo          = "DeptoMpio",
+            titulo        = "Puntaje",
+            centroideMapa = "VALLE DEL CAUCA",
+            zoomMapa      = 6,
+            cortes        = list(Deptos = c(0, 10, 100, 300, Inf),
+                                 Mpios  = c(0, 1, 5, 10, 20, Inf)),
+            colores       = list(Deptos = c('#edf8e9','#bae4b3','#74c476','#006d2c'),
+                                 Mpios  = c('#ffffff',  '#5ec962', '#21918c', '#3b528b', '#fde725')),
+            showSedes     = TRUE
+  )
+```
+
+<br>
+
+```{r F24Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_GLOBAL8 <- SaberPro %>% select(YEAR, DEP_PROC, CIU_PROC, PUNTAJE_GLOBAL) %>% group_by(YEAR, DEP_PROC, CIU_PROC) %>% summarise("Puntaje Promedio" = round(mean(PUNTAJE_GLOBAL),1), "Desv. estándar" = round(sd(PUNTAJE_GLOBAL),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_GLOBAL8,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio global por departamento, municipio y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Departamento procedencia","Ciudad procedencia","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+### Información por área del conocimiento
+
+A continuación, las figuras \@ref(fig:F25Saber) y \@ref(fig:F26Saber) presentan, respectivamente, la evolución histórica del puntaje global -*por año*-, y el comportamiento actual del puntaje promedio global y por componentes según el área del conocimiento SNIES.
+
+```{r F25Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNTAJE_GLOBAL,
+  grupo1   = YEAR,
+  grupo2 = AREAC_SNIES,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje global",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Área del conocimiento SNIES:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F26Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+  Plot.Radar(
+    datos     = subset(SaberPro, YEAR == ano),
+    categoria = AREAC_SNIES,
+    variables = vars("GLOBAL"=PUNTAJE_GLOBAL,
+                     "COMPETENIAS CIUDADANAS"=PUNT_COMP_CIUD,
+                     "COMUNICACIÓN ESCRITA"=PUNT_COMU_ESCR,
+                     "INGLÉS"=PUNT_INGLES,
+                     "LECTURA CRITICA"=PUNT_LECT_CRIT,
+                     "RAZONAMIENTO CUANTITATIVO"=PUNT_RAZO_CUANT),
+    rango = c(0, NaN),
+    estadistico = "Promedio",
+    libreria = "plotly",
+    titulo = paste0("Puntajes promedio globales y por componentes según el área del conocimiento SNIES (año ",ano, ")"),
+    estilo = list(ply.LegendTitle = "Área del conocimiento SNIES:", ply.Relleno = "tonext", e.Tema = tema)
+  )
+```
+
+<br>
+
+```{r F27Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_GLOBAL9 <- SaberPro %>% select(YEAR, AREAC_SNIES, PUNTAJE_GLOBAL) %>% group_by(YEAR, AREAC_SNIES) %>% summarise("Puntaje Promedio" = round(mean(PUNTAJE_GLOBAL),1), "Desv. estándar" = round(sd(PUNTAJE_GLOBAL),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_GLOBAL9,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio global por área del conocimiento SNIES y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Área de conocimiento","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+## Puntaje por componentes
+
+### Evolución histórica del puntaje por componentes
+
+A continuación, la Figura \@ref(fig:F28Saber), presenta la evolución histórica -*desde el periodo 2016*-, del puntaje por componentes.
+
+```{r F28Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = PuntComp,
+  variable = PUNTAJE,
+  grupo1   = YEAR,
+  grupo2 = COMPONENTE,
+  outliers = FALSE,
+  ylim     = c(0, 300),
+  titulo   = "Puntaje por componentes",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Componente:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+### Comparción del puntaje por componentes según la variable de interés {#Comparacion}
+
+A continuación, las Figuras \@ref(fig:F29Saber), \@ref(fig:F30Saber), \@ref(fig:F31Saber), \@ref(fig:F32Saber), \@ref(fig:F33Saber), \@ref(fig:F34Saber), \@ref(fig:F35Saber) y \@ref(fig:F36Saber), presentan el comportamiento del puntaje por componentes según la variable de interés para el último año registrado.
+
+#### Sexo
+
+```{r F29Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = subset(PuntComp,YEAR = ano),
+  variable = PUNTAJE,
+  grupo1   = SEXO,
+  grupo2 = COMPONENTE,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = paste("Puntaje por competencias del año",ano),
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Componente:", hc.Tema = tema)
+)
+```
+
+#### Edad
+
+```{r F30Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = subset(PuntComp,YEAR = ano),
+  variable = PUNTAJE,
+  grupo1   = CAT_EDAD,
+  grupo2 = COMPONENTE,
+  outliers = FALSE,
+  ylim     = c(0, 300),
+  titulo   = paste("Puntaje por componentes del año",ano),
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Componente:", hc.Tema = tema)
+)
+```
+
+#### Tipo de colegio
+
+```{r F31Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = subset(PuntComp,YEAR = ano),
+  variable = PUNTAJE,
+  grupo1   = TIPO_COL,
+  grupo2 = COMPONENTE,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = paste("Puntaje por componentes del año",ano),
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Componente:", hc.Tema = tema)
+)
+```
+
+#### Modalidad de admisión
+
+```{r F32Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = subset(PuntComp,YEAR = ano),
+  variable = PUNTAJE,
+  grupo1   = MOD_ADM,
+  grupo2 = COMPONENTE,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = paste("Puntaje por componentes del año",ano),
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Componente:", hc.Tema = tema)
+)
+```
+
+#### Estrato
+
+```{r F33Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = subset(PuntComp,YEAR = ano),
+  variable = PUNTAJE,
+  grupo1   = ESTRATO,
+  grupo2 = COMPONENTE,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = paste("Puntaje por componentes del año",ano),
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Componente:", hc.Tema = tema)
+)
+```
+
+#### PBM
+
+```{r F34Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = subset(PuntComp,YEAR = ano),
+  variable = PUNTAJE,
+  grupo1   = PBM,
+  grupo2 = COMPONENTE,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = paste("Puntaje por componentes del año",ano),
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Componente:", hc.Tema = tema)
+)
+```
+
+#### Nacionalidad
+
+```{r F35Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = subset(PuntComp,YEAR = ano),
+  variable = PUNTAJE,
+  grupo1   = NACIONALIDAD,
+  grupo2 = COMPONENTE,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = paste("Puntaje por componentes del año",ano),
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Componente:", hc.Tema = tema)
+)
+```
+
+#### Área del conocimiento SNIES
+
+```{r F36Saber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = subset(PuntComp,YEAR = ano),
+  variable = PUNTAJE,
+  grupo1   = AREAC_SNIES,
+  grupo2 = COMPONENTE,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = paste("Puntaje por componentes del año",ano),
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Componente:", hc.Tema = tema)
+)
+```
+
+### Razonamiento cuantitativo {#RazoCuant}
+
+#### Evolución histórica del puntaje de razonamiento cuantitativo
+
+A continuación, la Figura \@ref(fig:F1SaberRC), presenta la evolución histórica por año -*desde el periodo 2016*-, del puntaje de razonamiento cuantitativo. La figura \@ref(fig:FSEDESaberRC) presenta la comparación entre sedes del puntaje de razonamiento cuantitativo por años.
+
+```{r F1SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Msj <- "Información disponible desde 2016"
+
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_RAZO_CUANT,
+  grupo1   = YEAR,
+  outliers = TRUE,
+  ylim     = c(0, 300),
+  titulo   = "Puntaje de razonamiento cuantitativo",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r FSEDESaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = UnalData::SaberPro,
+  variable = PUNT_RAZO_CUANT,
+  grupo1 = YEAR,
+  grupo2   = SEDE_NOMBRE_ADM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Comparación entre sedes del puntaje de razonamiento cuantitativo",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Sede:", hc.Tema = tema)
+)
+```
+
+<br>
+
+#### Información por sexo
+
+A continuación, la figura \@ref(fig:F2SaberRC) presenta, respectivamente, la evolución histórica del puntaje de razonamiento cuantitativo -*por año*- según el sexo biológico.
+
+```{r F2SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_RAZO_CUANT,
+  grupo1   = YEAR,
+  grupo2 = SEXO,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de razonamiento cuantitativo",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Sexo:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F4SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_RAZO_CUANT1 <- SaberPro %>% select(YEAR, SEXO, PUNT_RAZO_CUANT) %>% group_by(YEAR, SEXO) %>% summarise("Puntaje Promedio" = round(mean(PUNT_RAZO_CUANT),1), "Desv. estándar" = round(sd(PUNT_RAZO_CUANT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_RAZO_CUANT1,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de razonamiento cuantitativo por sexo y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Sexo","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por edad
+
+A continuación, la figura \@ref(fig:F5SaberRC) presenta, respectivamente, la evolución histórica del puntaje de razonamiento cuantitativo -*por año*- según el rango de edad.
+
+```{r F5SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_RAZO_CUANT,
+  grupo1   = YEAR,
+  grupo2 = CAT_EDAD,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de razonamiento cuantitativo",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Edad:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F7SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_RAZO_CUANT2 <- SaberPro %>% select(YEAR, CAT_EDAD, PUNT_RAZO_CUANT) %>% group_by(YEAR, CAT_EDAD) %>% summarise("Puntaje Promedio" = round(mean(PUNT_RAZO_CUANT),1), "Desv. estándar" = round(sd(PUNT_RAZO_CUANT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_RAZO_CUANT2,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de razonamiento cuantitativo por edad y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Edad","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por tipo de colegio
+
+A continuación, la figura \@ref(fig:F8SaberRC) presenta, respectivamente, la evolución histórica del puntaje de razonamiento cuantitativo -*por año*- según el tipo de colegio.
+
+```{r F8SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_RAZO_CUANT,
+  grupo1   = YEAR,
+  grupo2 = TIPO_COL,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de razonamiento cuantitativo",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Tipo de colegio:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F10SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_RAZO_CUANT3 <- SaberPro %>% select(YEAR, TIPO_COL, PUNT_RAZO_CUANT) %>% group_by(YEAR, TIPO_COL) %>% summarise("Puntaje Promedio" = round(mean(PUNT_RAZO_CUANT),1), "Desv. estándar" = round(sd(PUNT_RAZO_CUANT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_RAZO_CUANT3,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de razonamiento cuantitativo por tipo de colegio y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Tipo de colegio","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por modalidad de admisión
+
+A continuación, la figura \@ref(fig:F11SaberRC) presenta, respectivamente, la evolución histórica del puntaje de razonamiento cuantitativo -*por año*- según la modalidad de admisión.
+
+```{r F11SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_RAZO_CUANT,
+  grupo1   = YEAR,
+  grupo2 = MOD_ADM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de razonamiento cuantitativo",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Modalidad de admisión:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F13SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_RAZO_CUANT4 <- SaberPro %>% select(YEAR, MOD_ADM, PUNT_RAZO_CUANT) %>% group_by(YEAR, MOD_ADM) %>% summarise("Puntaje Promedio" = round(mean(PUNT_RAZO_CUANT),1), "Desv. estándar" = round(sd(PUNT_RAZO_CUANT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_RAZO_CUANT4,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de razonamiento cuantitativo por modalidad de admisión y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Modalidad admisión","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por estrato
+
+A continuación, la figura \@ref(fig:F14SaberRC) presenta, respectivamente, la evolución histórica del puntaje de razonamiento cuantitativo -*por año*- según el estrato.
+
+```{r F14SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_RAZO_CUANT,
+  grupo1   = YEAR,
+  grupo2 = ESTRATO,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de razonamiento cuantitativo",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Estrato:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F16SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_RAZO_CUANT5 <- SaberPro %>% select(YEAR, ESTRATO, PUNT_RAZO_CUANT) %>% group_by(YEAR, ESTRATO) %>% summarise("Puntaje Promedio" = round(mean(PUNT_RAZO_CUANT),1), "Desv. estándar" = round(sd(PUNT_RAZO_CUANT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_RAZO_CUANT5,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de razonamiento cuantitativo por estrato y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Estrato","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por PBM
+
+A continuación, la figura \@ref(fig:F17SaberRC) presenta, respectivamente, la evolución histórica del puntaje de razonamiento cuantitativo -*por año*- según el Puntaje Básico de Matricula (PBM).
+
+```{r F17SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_RAZO_CUANT,
+  grupo1   = YEAR,
+  grupo2 = PBM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de razonamiento cuantitativo",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "PBM:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F19SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_RAZO_CUANT6 <- SaberPro %>% select(YEAR, PBM, PUNT_RAZO_CUANT) %>% group_by(YEAR, PBM) %>% summarise("Puntaje Promedio" = round(mean(PUNT_RAZO_CUANT),1), "Desv. estándar" = round(sd(PUNT_RAZO_CUANT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_RAZO_CUANT6,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de razonamiento cuantitativo por PBM y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "PBM","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por nacionalidad
+
+A continuación, la figura \@ref(fig:F20SaberRC) presenta, respectivamente, la evolución histórica del puntaje de razonamiento cuantitativo -*por año*- según la nacionalidad.
+
+```{r F20SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_RAZO_CUANT,
+  grupo1   = YEAR,
+  grupo2 = NACIONALIDAD,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de razonamiento cuantitativo",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Nacionalidad:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F22SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_RAZO_CUANT7 <- SaberPro %>% select(YEAR, NACIONALIDAD, PUNT_RAZO_CUANT) %>% group_by(YEAR, NACIONALIDAD) %>% summarise("Puntaje Promedio" = round(mean(PUNT_RAZO_CUANT),1), "Desv. estándar" = round(sd(PUNT_RAZO_CUANT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_RAZO_CUANT7,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de razonamiento cuantitativo por nacionalidad y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Nacionalidad","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+#### Información por departamentos y municipios de procedencia
+
+A continuación, la figura \@ref(fig:F23SaberRC) presenta el mapa actual (último registro) con el puntaje promedio de razonamiento cuantitativo por departamentos y municipios de procedencia en la **Sede Palmira**.
+
+```{r F23SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+SaberPro %>% filter(YEAR == ano) %$%
+  Plot.Mapa(depto         = COD_DEP_PROC,
+            mpio          = COD_CIU_PROC,
+            variable = PUNT_RAZO_CUANT,
+            estadistico   = "Promedio",
+            tipo          = "DeptoMpio",
+            titulo        = "Puntaje",
+            centroideMapa = "VALLE DEL CAUCA",
+            zoomMapa      = 6,
+            cortes        = list(Deptos = c(0, 10, 100, 300, Inf),
+                                 Mpios  = c(0, 1, 5, 10, 20, Inf)),
+            colores       = list(Deptos = c('#edf8e9','#bae4b3','#74c476','#006d2c'),
+                                 Mpios  = c('#ffffff',  '#5ec962', '#21918c', '#3b528b', '#fde725')),
+            showSedes     = TRUE
+  )
+```
+
+<br>
+
+```{r F24SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_RAZO_CUANT8 <- SaberPro %>% select(YEAR, DEP_PROC, CIU_PROC, PUNT_RAZO_CUANT) %>% group_by(YEAR, DEP_PROC, CIU_PROC) %>% summarise("Puntaje Promedio" = round(mean(PUNT_RAZO_CUANT),1), "Desv. estándar" = round(sd(PUNT_RAZO_CUANT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_RAZO_CUANT8,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de razonamiento cuantitativo por departamento, municipio y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Departamento procedencia","Ciudad procedencia","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+#### Información por área del conocimiento
+
+A continuación, la figura \@ref(fig:F25SaberRC) presenta, respectivamente, la evolución histórica del puntaje de razonamiento cuantitativo -*por año*- según el área de conocimiento SNIES.
+
+```{r F25SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_RAZO_CUANT,
+  grupo1   = YEAR,
+  grupo2 = AREAC_SNIES,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de razonamiento cuantitativo",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Área de conocimiento SNIES:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F27SaberRC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_RAZO_CUANT9 <- SaberPro %>% select(YEAR, AREAC_SNIES, PUNT_RAZO_CUANT) %>% group_by(YEAR, AREAC_SNIES) %>% summarise("Puntaje Promedio" = round(mean(PUNT_RAZO_CUANT),1), "Desv. estándar" = round(sd(PUNT_RAZO_CUANT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_RAZO_CUANT9,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de razonamiento cuantitativo por área de conocimiento y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Área de conocimiento","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+### Inglés {#Ingles}
+
+#### Evolución histórica del puntaje de inglés
+
+A continuación, la Figura \@ref(fig:F1SaberIng), presenta la evolución histórica por año -*desde el periodo 2016*-, del puntaje de inglés. La figura \@ref(fig:FSEDESaberIng) presenta la comparación entre sedes del puntaje de inglés por años.
+
+```{r F1SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Msj <- "Información disponible desde 2016"
+
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_INGLES,
+  grupo1   = YEAR,
+  outliers = TRUE,
+  ylim     = c(0, 300),
+  titulo   = "Puntaje de inglés",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r FSEDESaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = UnalData::SaberPro,
+  variable = PUNT_INGLES,
+  grupo1 = YEAR,
+  grupo2   = SEDE_NOMBRE_ADM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Comparación entre sedes del puntaje de inglés",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Sede:", hc.Tema = tema)
+)
+```
+
+<br>
+
+#### Información por sexo
+
+A continuación, la figura \@ref(fig:F2SaberIng) presenta, respectivamente, la evolución histórica del puntaje de inglés -*por año*- según el sexo biológico.
+
+```{r F2SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_INGLES,
+  grupo1   = YEAR,
+  grupo2 = SEXO,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de inglés",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Sexo:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F4SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_INGLES1 <- SaberPro %>% select(YEAR, SEXO, PUNT_INGLES) %>% group_by(YEAR, SEXO) %>% summarise("Puntaje Promedio" = round(mean(PUNT_INGLES),1), "Desv. estándar" = round(sd(PUNT_INGLES),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_INGLES1,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de inglés por sexo y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Sexo","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por edad
+
+A continuación, la figura \@ref(fig:F5SaberIng) presenta, respectivamente, la evolución histórica del puntaje de inglés -*por año*- según el rango de edad.
+
+```{r F5SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_INGLES,
+  grupo1   = YEAR,
+  grupo2 = CAT_EDAD,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de inglés",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Edad:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F7SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_INGLES2 <- SaberPro %>% select(YEAR, CAT_EDAD, PUNT_INGLES) %>% group_by(YEAR, CAT_EDAD) %>% summarise("Puntaje Promedio" = round(mean(PUNT_INGLES),1), "Desv. estándar" = round(sd(PUNT_INGLES),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_INGLES2,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de inglés por edad y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Edad","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por tipo de colegio
+
+A continuación, la figura \@ref(fig:F8SaberIng) presenta, respectivamente, la evolución histórica del puntaje de inglés -*por año*- según el tipo de colegio.
+
+```{r F8SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_INGLES,
+  grupo1   = YEAR,
+  grupo2 = TIPO_COL,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de inglés",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Tipo de colegio:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F10SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_INGLES3 <- SaberPro %>% select(YEAR, TIPO_COL, PUNT_INGLES) %>% group_by(YEAR, TIPO_COL) %>% summarise("Puntaje Promedio" = round(mean(PUNT_INGLES),1), "Desv. estándar" = round(sd(PUNT_INGLES),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_INGLES3,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de inglés por tipo de colegio y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Tipo de colegio","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por modalidad de admisión
+
+A continuación, la figura \@ref(fig:F11SaberIng) presenta, respectivamente, la evolución histórica del puntaje de inglés -*por año*- según la modalidad de admisión.
+
+```{r F11SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_INGLES,
+  grupo1   = YEAR,
+  grupo2 = MOD_ADM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de inglés",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Modalidad de admisión:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F13SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_INGLES4 <- SaberPro %>% select(YEAR, MOD_ADM, PUNT_INGLES) %>% group_by(YEAR, MOD_ADM) %>% summarise("Puntaje Promedio" = round(mean(PUNT_INGLES),1), "Desv. estándar" = round(sd(PUNT_INGLES),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_INGLES4,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de inglés por modalidad de admisión y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Modalidad admisión","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por estrato
+
+A continuación, la figura \@ref(fig:F14SaberIng) presenta, respectivamente, la evolución histórica del puntaje de razonamiento cuantitativo -*por año*- según el estrato.
+
+```{r F14SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_INGLES,
+  grupo1   = YEAR,
+  grupo2 = ESTRATO,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de inglés",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Estrato:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F16SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_INGLES5 <- SaberPro %>% select(YEAR, ESTRATO, PUNT_INGLES) %>% group_by(YEAR, ESTRATO) %>% summarise("Puntaje Promedio" = round(mean(PUNT_INGLES),1), "Desv. estándar" = round(sd(PUNT_INGLES),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_INGLES5,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de inglés por estrato y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Estrato","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por PBM
+
+A continuación, la figura \@ref(fig:F17SaberIng) presenta, respectivamente, la evolución histórica del puntaje de inglés -*por año*- según el Puntaje Básico de Matricula (PBM).
+
+```{r F17SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_INGLES,
+  grupo1   = YEAR,
+  grupo2 = PBM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de inglés",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "PBM:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F19SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_INGLES6 <- SaberPro %>% select(YEAR, PBM, PUNT_INGLES) %>% group_by(YEAR, PBM) %>% summarise("Puntaje Promedio" = round(mean(PUNT_INGLES),1), "Desv. estándar" = round(sd(PUNT_INGLES),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_INGLES6,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de inglés por PBM y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "PBM","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por nacionalidad
+
+A continuación, la figura \@ref(fig:F20SaberIng) presenta, respectivamente, la evolución histórica del puntaje de inglés -*por año*- según la nacionalidad.
+
+```{r F20SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_INGLES,
+  grupo1   = YEAR,
+  grupo2 = NACIONALIDAD,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de inglés",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Nacionalidad:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F22SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_INGLES7 <- SaberPro %>% select(YEAR, NACIONALIDAD, PUNT_INGLES) %>% group_by(YEAR, NACIONALIDAD) %>% summarise("Puntaje Promedio" = round(mean(PUNT_INGLES),1), "Desv. estándar" = round(sd(PUNT_INGLES),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_INGLES7,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de inglés por nacionalidad y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Nacionalidad","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+#### Información por departamentos y municipios de procedencia
+
+A continuación, la figura \@ref(fig:F23SaberIng) presenta el mapa actual (último registro) con el puntaje promedio de inglés por departamentos y municipios de procedencia en la **Sede Palmira**.
+
+```{r F23SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+SaberPro %>% filter(YEAR == ano) %$%
+  Plot.Mapa(depto         = COD_DEP_PROC,
+            mpio          = COD_CIU_PROC,
+            variable = PUNT_INGLES,
+            estadistico   = "Promedio",
+            tipo          = "DeptoMpio",
+            titulo        = "Puntaje",
+            centroideMapa = "VALLE DEL CAUCA",
+            zoomMapa      = 6,
+            cortes        = list(Deptos = c(0, 10, 100, 300, Inf),
+                                 Mpios  = c(0, 1, 5, 10, 20, Inf)),
+            colores       = list(Deptos = c('#edf8e9','#bae4b3','#74c476','#006d2c'),
+                                 Mpios  = c('#ffffff',  '#5ec962', '#21918c', '#3b528b', '#fde725')),
+            showSedes     = TRUE
+  )
+```
+
+<br>
+
+```{r F24SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_INGLES8 <- SaberPro %>% select(YEAR, DEP_PROC, CIU_PROC, PUNT_INGLES) %>% group_by(YEAR, DEP_PROC, CIU_PROC) %>% summarise("Puntaje Promedio" = round(mean(PUNT_INGLES),1), "Desv. estándar" = round(sd(PUNT_INGLES),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_INGLES8,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de inglés por departamento, municipio y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Departamento procedencia","Ciudad procedencia","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+#### Información por área del conocimiento
+
+A continuación, la figura \@ref(fig:F25SaberIng) presenta, respectivamente, la evolución histórica del puntaje de inglés -*por año*- según el área de conocimiento SNIES.
+
+```{r F25SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_INGLES,
+  grupo1   = YEAR,
+  grupo2 = AREAC_SNIES,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de inglés",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Área de conocimiento SNIES:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F27SaberIng, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_INGLES9 <- SaberPro %>% select(YEAR, AREAC_SNIES, PUNT_INGLES) %>% group_by(YEAR, AREAC_SNIES) %>% summarise("Puntaje Promedio" = round(mean(PUNT_INGLES),1), "Desv. estándar" = round(sd(PUNT_INGLES),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_INGLES9,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de inglés por área de conocimiento y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Área de conocimiento","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+### Lectura crítica {#Lectura}
+
+#### Evolución histórica del puntaje de razonamiento cuantitativo
+
+A continuación, la Figura \@ref(fig:F1SaberLC), presenta la evolución histórica por año -*desde el periodo 2016*-, del puntaje de lectura crítica. La figura \@ref(fig:FSEDESaberLC) presenta la comparación entre sedes del puntaje de lectura crítica por años.
+
+```{r F1SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Msj <- "Información disponible desde 2016"
+
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_LECT_CRIT,
+  grupo1   = YEAR,
+  outliers = TRUE,
+  ylim     = c(0, 300),
+  titulo   = "Puntaje de razonamiento cuantitativo",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r FSEDESaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = UnalData::SaberPro,
+  variable = PUNT_LECT_CRIT,
+  grupo1 = YEAR,
+  grupo2   = SEDE_NOMBRE_ADM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Comparación entre sedes del puntaje de lectura crítica",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Sede:", hc.Tema = tema)
+)
+```
+
+<br>
+
+#### Información por sexo
+
+A continuación, la figura \@ref(fig:F2SaberLC) presenta, respectivamente, la evolución histórica del puntaje de lectura crítica -*por año*- según el sexo biológico.
+
+```{r F2SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_LECT_CRIT,
+  grupo1   = YEAR,
+  grupo2 = SEXO,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de lectura crítica",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Sexo:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F4SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_LECT_CRIT1 <- SaberPro %>% select(YEAR, SEXO, PUNT_LECT_CRIT) %>% group_by(YEAR, SEXO) %>% summarise("Puntaje Promedio" = round(mean(PUNT_LECT_CRIT),1), "Desv. estándar" = round(sd(PUNT_LECT_CRIT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_LECT_CRIT1,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de lectura crítica por sexo y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Sexo","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por edad
+
+A continuación, la figura \@ref(fig:F5SaberLC) presenta, respectivamente, la evolución histórica del puntaje de lectura crítica -*por año*- según el rango de edad.
+
+```{r F5SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_LECT_CRIT,
+  grupo1   = YEAR,
+  grupo2 = CAT_EDAD,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de lectura crítica",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Edad:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F7SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_LECT_CRIT2 <- SaberPro %>% select(YEAR, CAT_EDAD, PUNT_LECT_CRIT) %>% group_by(YEAR, CAT_EDAD) %>% summarise("Puntaje Promedio" = round(mean(PUNT_LECT_CRIT),1), "Desv. estándar" = round(sd(PUNT_LECT_CRIT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_LECT_CRIT2,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de lectura crítica por edad y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Edad","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por tipo de colegio
+
+A continuación, la figura \@ref(fig:F8SaberLC) presenta, respectivamente, la evolución histórica del puntaje de lectura crítica -*por año*- según el tipo de colegio.
+
+```{r F8SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_LECT_CRIT,
+  grupo1   = YEAR,
+  grupo2 = TIPO_COL,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de lectura crítica",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Tipo de colegio:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F10SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_LECT_CRIT3 <- SaberPro %>% select(YEAR, TIPO_COL, PUNT_LECT_CRIT) %>% group_by(YEAR, TIPO_COL) %>% summarise("Puntaje Promedio" = round(mean(PUNT_LECT_CRIT),1), "Desv. estándar" = round(sd(PUNT_LECT_CRIT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_LECT_CRIT3,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de lectura crítica por tipo de colegio y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Tipo de colegio","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+<br>
+
+#### Información por modalidad de admisión
+
+A continuación, la figura \@ref(fig:F11SaberLC) presenta, respectivamente, la evolución histórica del puntaje de lectura crítica -*por año*- según la modalidad de admisión.
+
+```{r F11SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_LECT_CRIT,
+  grupo1   = YEAR,
+  grupo2 = MOD_ADM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de lectura crítica",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Modalidad de admisión:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F13SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_LECT_CRIT4 <- SaberPro %>% select(YEAR, MOD_ADM, PUNT_LECT_CRIT) %>% group_by(YEAR, MOD_ADM) %>% summarise("Puntaje Promedio" = round(mean(PUNT_LECT_CRIT),1), "Desv. estándar" = round(sd(PUNT_LECT_CRIT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_LECT_CRIT4,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de lectura crítica por modalidad de admisión y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Modalidad admisión","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por estrato
+
+A continuación, la figura \@ref(fig:F14SaberLC) presenta, respectivamente, la evolución histórica del puntaje de lectura crítica -*por año*- según el estrato.
+
+```{r F14SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_LECT_CRIT,
+  grupo1   = YEAR,
+  grupo2 = ESTRATO,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de lectura crítica",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Estrato:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F16SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_LECT_CRIT5 <- SaberPro %>% select(YEAR, ESTRATO, PUNT_LECT_CRIT) %>% group_by(YEAR, ESTRATO) %>% summarise("Puntaje Promedio" = round(mean(PUNT_LECT_CRIT),1), "Desv. estándar" = round(sd(PUNT_LECT_CRIT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_LECT_CRIT5,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de lectura crítica por estrato y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Estrato","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por PBM
+
+A continuación, la figura \@ref(fig:F17SaberLC) presenta, respectivamente, la evolución histórica del puntaje de lectura crítica -*por año*- según el Puntaje Básico de Matricula (PBM).
+
+```{r F17SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_LECT_CRIT,
+  grupo1   = YEAR,
+  grupo2 = PBM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de lectura crítica",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "PBM:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F19SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_LECT_CRIT6 <- SaberPro %>% select(YEAR, PBM, PUNT_LECT_CRIT) %>% group_by(YEAR, PBM) %>% summarise("Puntaje Promedio" = round(mean(PUNT_LECT_CRIT),1), "Desv. estándar" = round(sd(PUNT_LECT_CRIT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_LECT_CRIT6,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de lectura crítica por PBM y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "PBM","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por nacionalidad
+
+A continuación, la figura \@ref(fig:F20SaberLC) presenta, respectivamente, la evolución histórica del puntaje de lectura crítica -*por año*- según la nacionalidad.
+
+```{r F20SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_LECT_CRIT,
+  grupo1   = YEAR,
+  grupo2 = NACIONALIDAD,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de lectura crítica",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Nacionalidad:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F22SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_LECT_CRIT7 <- SaberPro %>% select(YEAR, NACIONALIDAD, PUNT_LECT_CRIT) %>% group_by(YEAR, NACIONALIDAD) %>% summarise("Puntaje Promedio" = round(mean(PUNT_LECT_CRIT),1), "Desv. estándar" = round(sd(PUNT_LECT_CRIT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_LECT_CRIT7,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de lectura crítica por nacionalidad y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Nacionalidad","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+#### Información por departamentos y municipios de procedencia
+
+A continuación, la figura \@ref(fig:F23SaberLC) presenta el mapa actual (último registro) con el puntaje promedio de lectura crítica por departamentos y municipios de procedencia en la **Sede Palmira**.
+
+```{r F23SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+SaberPro %>% filter(YEAR == ano) %$%
+  Plot.Mapa(depto         = COD_DEP_PROC,
+            mpio          = COD_CIU_PROC,
+            variable = PUNT_LECT_CRIT,
+            estadistico   = "Promedio",
+            tipo          = "DeptoMpio",
+            titulo        = "Puntaje",
+            centroideMapa = "VALLE DEL CAUCA",
+            zoomMapa      = 6,
+            cortes        = list(Deptos = c(0, 10, 100, 300, Inf),
+                                 Mpios  = c(0, 1, 5, 10, 20, Inf)),
+            colores       = list(Deptos = c('#edf8e9','#bae4b3','#74c476','#006d2c'),
+                                 Mpios  = c('#ffffff',  '#5ec962', '#21918c', '#3b528b', '#fde725')),
+            showSedes     = TRUE
+  )
+```
+
+<br>
+
+```{r F24SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_LECT_CRIT8 <- SaberPro %>% select(YEAR, DEP_PROC, CIU_PROC, PUNT_LECT_CRIT) %>% group_by(YEAR, DEP_PROC, CIU_PROC) %>% summarise("Puntaje Promedio" = round(mean(PUNT_LECT_CRIT),1), "Desv. estándar" = round(sd(PUNT_LECT_CRIT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+UnalR::Tabla.General(
+  datos = TABLA_PUNT_LECT_CRIT8,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de lectura crítica por departamento, municipio y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Departamento procedencia","Ciudad procedencia","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+#### Información por área del conocimiento
+
+A continuación, la figura \@ref(fig:F25SaberLC) presenta, respectivamente, la evolución histórica del puntaje de lectura crítica -*por año*- según el área de conocimiento SNIES.
+
+```{r F25SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_LECT_CRIT,
+  grupo1   = YEAR,
+  grupo2 = AREAC_SNIES,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de lectura crítica",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Área de conocimiento SNIES:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F27SaberLC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_LECT_CRIT9 <- SaberPro %>% select(YEAR, AREAC_SNIES, PUNT_LECT_CRIT) %>% group_by(YEAR, AREAC_SNIES) %>% summarise("Puntaje Promedio" = round(mean(PUNT_LECT_CRIT),1), "Desv. estándar" = round(sd(PUNT_LECT_CRIT),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_LECT_CRIT9,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de lectura crítica por área de conocimiento y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Área de conocimiento","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+### Competencias ciudadanas {#CompCiu}
+
+#### Evolución histórica del puntaje de razonamiento cuantitativo
+
+A continuación, la Figura \@ref(fig:F1SaberCC), presenta la evolución histórica por año -*desde el periodo 2016*-, del puntaje de competencias ciudadanas. La figura \@ref(fig:FSEDESaberCC) presenta la comparación entre sedes del puntaje de competencias ciudadanas por años.
+
+```{r F1SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Msj <- "Información disponible desde 2016"
+
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMP_CIUD,
+  grupo1   = YEAR,
+  outliers = TRUE,
+  ylim     = c(0, 300),
+  titulo   = "Puntaje de competencias ciudadanas",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r FSEDESaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = UnalData::SaberPro,
+  variable = PUNT_COMP_CIUD,
+  grupo1 = YEAR,
+  grupo2   = SEDE_NOMBRE_ADM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Comparación entre sedes del puntaje de competencias ciudadanas",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Sede:", hc.Tema = tema)
+)
+```
+
+<br>
+
+#### Información por sexo
+
+A continuación, la figura \@ref(fig:F2SaberCC) presenta, respectivamente, la evolución histórica del puntaje de razonamiento cuantitativo -*por año*- según el sexo biológico.
+
+```{r F2SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMP_CIUD,
+  grupo1   = YEAR,
+  grupo2 = SEXO,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de competencias ciudadanas",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Sexo:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F4SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMP_CIUD1 <- SaberPro %>% select(YEAR, SEXO, PUNT_COMP_CIUD) %>% group_by(YEAR, SEXO) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMP_CIUD),1), "Desv. estándar" = round(sd(PUNT_COMP_CIUD),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMP_CIUD1,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de competencias ciudadanas por sexo y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Área de conocimiento","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por edad
+
+A continuación, la figura \@ref(fig:F5SaberCC) presenta, respectivamente, la evolución histórica del puntaje de competencias ciudadanas -*por año*- según el rango de edad.
+
+```{r F5SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMP_CIUD,
+  grupo1   = YEAR,
+  grupo2 = CAT_EDAD,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de competencias ciudadanas",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Edad:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F7SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMP_CIUD2 <- SaberPro %>% select(YEAR, CAT_EDAD, PUNT_COMP_CIUD) %>% group_by(YEAR, CAT_EDAD) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMP_CIUD),1), "Desv. estándar" = round(sd(PUNT_COMP_CIUD),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMP_CIUD2,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de competencias ciudadanas por edad y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Edad","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por tipo de colegio
+
+A continuación, la figura \@ref(fig:F8SaberCC) presenta, respectivamente, la evolución histórica del puntaje de competencias ciudadanas -*por año*- según el tipo de colegio.
+
+```{r F8SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMP_CIUD,
+  grupo1   = YEAR,
+  grupo2 = TIPO_COL,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de competencias ciudadanas",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Tipo de colegio:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F10SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMP_CIUD3 <- SaberPro %>% select(YEAR, TIPO_COL, PUNT_COMP_CIUD) %>% group_by(YEAR, TIPO_COL) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMP_CIUD),1), "Desv. estándar" = round(sd(PUNT_COMP_CIUD),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMP_CIUD3,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de competencias ciudadanas por tipo de colegio y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Tipo de colegio","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por modalidad de admisión
+
+A continuación, la figura \@ref(fig:F11SaberCC) presenta, respectivamente, la evolución histórica del puntaje de competencias ciudadanas -*por año*- según la modalidad de admisión.
+
+```{r F11SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMP_CIUD,
+  grupo1   = YEAR,
+  grupo2 = MOD_ADM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de competencias ciudadanas",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Modalidad de admisión:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F13SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMP_CIUD4 <- SaberPro %>% select(YEAR, MOD_ADM, PUNT_COMP_CIUD) %>% group_by(YEAR, MOD_ADM) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMP_CIUD),1), "Desv. estándar" = round(sd(PUNT_COMP_CIUD),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMP_CIUD4,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de competencias ciudadanas por modalidad de admisión y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Modalidad admisión","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por estrato
+
+A continuación, la figura \@ref(fig:F14SaberCC) presenta, respectivamente, la evolución histórica del puntaje de competencias ciudadanas -*por año*- según el estrato.
+
+```{r F14SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMP_CIUD,
+  grupo1   = YEAR,
+  grupo2 = ESTRATO,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de competencias ciudadanas",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Estrato:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F16SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMP_CIUD5 <- SaberPro %>% select(YEAR, ESTRATO, PUNT_COMP_CIUD) %>% group_by(YEAR, ESTRATO) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMP_CIUD),1), "Desv. estándar" = round(sd(PUNT_COMP_CIUD),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMP_CIUD5,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de competencias ciudadanas por estrato y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Estrato","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por PBM
+
+A continuación, la figura \@ref(fig:F17SaberCC) presenta, respectivamente, la evolución histórica del puntaje de competencias ciudadanas -*por año*- según el Puntaje Básico de Matricula (PBM).
+
+```{r F17SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMP_CIUD,
+  grupo1   = YEAR,
+  grupo2 = PBM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de competencias cuidadanas",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "PBM:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F19SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMP_CIUD6 <- SaberPro %>% select(YEAR, PBM, PUNT_COMP_CIUD) %>% group_by(YEAR, PBM) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMP_CIUD),1), "Desv. estándar" = round(sd(PUNT_COMP_CIUD),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMP_CIUD6,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de competencias ciudadanas por PBM y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "PBM","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por nacionalidad
+
+A continuación, la figura \@ref(fig:F20SaberCC) presenta, respectivamente, la evolución histórica del puntaje de competencias ciudadanas -*por año*- según la nacionalidad.
+
+```{r F20SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMP_CIUD,
+  grupo1   = YEAR,
+  grupo2 = NACIONALIDAD,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de competencias ciudadanas",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Nacionalidad:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F22SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMP_CIUD7 <- SaberPro %>% select(YEAR, NACIONALIDAD, PUNT_COMP_CIUD) %>% group_by(YEAR, NACIONALIDAD) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMP_CIUD),1), "Desv. estándar" = round(sd(PUNT_COMP_CIUD),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMP_CIUD7,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de competencias ciudadanas por nacionalidad y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Nacionalidad","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+#### Información por departamentos y municipios de procedencia
+
+A continuación, la figura \@ref(fig:F23SaberCC) presenta el mapa actual (último registro) con el puntaje promedio de competencias ciudadanas por departamentos y municipios de procedencia en la **Sede Palmira**.
+
+```{r F23SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+SaberPro %>% filter(YEAR == ano) %$%
+  Plot.Mapa(depto         = COD_DEP_PROC,
+            mpio          = COD_CIU_PROC,
+            variable = PUNT_COMP_CIUD,
+            estadistico   = "Promedio",
+            tipo          = "DeptoMpio",
+            titulo        = "Puntaje",
+            centroideMapa = "VALLE DEL CAUCA",
+            zoomMapa      = 6,
+            cortes        = list(Deptos = c(0, 10, 100, 300, Inf),
+                                 Mpios  = c(0, 1, 5, 10, 20, Inf)),
+            colores       = list(Deptos = c('#edf8e9','#bae4b3','#74c476','#006d2c'),
+                                 Mpios  = c('#ffffff',  '#5ec962', '#21918c', '#3b528b', '#fde725')),
+            showSedes     = TRUE
+  )
+```
+
+<br>
+
+```{r F24SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMP_CIUD8 <- SaberPro %>% select(YEAR, DEP_PROC, CIU_PROC, PUNT_COMP_CIUD) %>% group_by(YEAR, DEP_PROC, CIU_PROC) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMP_CIUD),1), "Desv. estándar" = round(sd(PUNT_COMP_CIUD),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMP_CIUD8,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de competencias ciudadanas por departamento, municipio y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Departamento procedencia","Ciudad procedencia","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+#### Información por área del conocimiento
+
+A continuación, la figura \@ref(fig:F25SaberCC) presenta, respectivamente, la evolución histórica del puntaje de competencias ciudadanas -*por año*- según el área de conocimiento SNIES.
+
+```{r F25SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMP_CIUD,
+  grupo1   = YEAR,
+  grupo2 = AREAC_SNIES,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de competencias ciudadanas",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Área de conocimiento SNIES:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F27SaberCC, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMP_CIUD9 <- SaberPro %>% select(YEAR, AREAC_SNIES, PUNT_COMP_CIUD) %>% group_by(YEAR, AREAC_SNIES) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMP_CIUD),1), "Desv. estándar" = round(sd(PUNT_COMP_CIUD),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMP_CIUD9,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de competencias ciudadanas por área de conocimiento y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Área de conocimiento","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+### Comunicación escrita {#ComuEsc}
+
+#### Evolución histórica del puntaje de razonamiento cuantitativo
+
+A continuación, la Figura \@ref(fig:F1SaberCE), presenta la evolución histórica por año -*desde el periodo 2016*-, del puntaje de comunicación escrita. La figura \@ref(fig:FSEDESaberCE) presenta la comparación entre sedes del puntaje de comunicación escrita por años.
+
+```{r F1SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Msj <- "Información disponible desde 2016"
+
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMU_ESCR,
+  grupo1   = YEAR,
+  outliers = TRUE,
+  ylim     = c(0, 300),
+  titulo   = "Puntaje de comunicación escrita",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r FSEDESaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = UnalData::SaberPro,
+  variable = PUNT_COMU_ESCR,
+  grupo1 = YEAR,
+  grupo2   = SEDE_NOMBRE_ADM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Comparación entre sedes del puntaje de comunicación escrita",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Sede:", hc.Tema = tema)
+)
+```
+
+<br>
+
+#### Información por sexo
+
+A continuación, la figura \@ref(fig:F2SaberCE) presenta, respectivamente, la evolución histórica del puntaje de comunicación escrita -*por año*- según el sexo biológico.
+
+```{r F2SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMU_ESCR,
+  grupo1   = YEAR,
+  grupo2 = SEXO,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de comunicación escrita",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Sexo:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F4SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMU_ESCR1 <- SaberPro %>% select(YEAR, SEXO, PUNT_COMU_ESCR) %>% group_by(YEAR, SEXO) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMU_ESCR),1), "Desv. estándar" = round(sd(PUNT_COMU_ESCR),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMU_ESCR1,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de comunicación escrita por sexo y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Sexo","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por edad
+
+A continuación, la figura \@ref(fig:F5SaberCE) presenta, respectivamente, la evolución histórica del puntaje de comunicación escrita -*por año*- según el rango de edad.
+
+```{r F5SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMU_ESCR,
+  grupo1   = YEAR,
+  grupo2 = CAT_EDAD,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de comunicación escrita",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Edad:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F7SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMU_ESCR2 <- SaberPro %>% select(YEAR, CAT_EDAD, PUNT_COMU_ESCR) %>% group_by(YEAR, CAT_EDAD) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMU_ESCR),1), "Desv. estándar" = round(sd(PUNT_COMU_ESCR),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMU_ESCR2,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de comunicación escrita por edad y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Edad","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por tipo de colegio
+
+A continuación, la figura \@ref(fig:F8SaberCE) presenta, respectivamente, la evolución histórica del puntaje de comunicación escrita -*por año*- según el tipo de colegio.
+
+```{r F8SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMU_ESCR,
+  grupo1   = YEAR,
+  grupo2 = TIPO_COL,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de comunicación escrita",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Tipo de colegio:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F10SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMU_ESCR3 <- SaberPro %>% select(YEAR, TIPO_COL, PUNT_COMU_ESCR) %>% group_by(YEAR, TIPO_COL) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMU_ESCR),1), "Desv. estándar" = round(sd(PUNT_COMU_ESCR),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMU_ESCR3,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de comunicación escrita por tipo de colegio y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Tipo de colegio","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+<br>
+
+#### Información por modalidad de admisión
+
+A continuación, la figura \@ref(fig:F11SaberCE) presenta, respectivamente, la evolución histórica del puntaje de comunicación escrita -*por año*- según la modalidad de admisión.
+
+```{r F11SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMU_ESCR,
+  grupo1   = YEAR,
+  grupo2 = MOD_ADM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de comunicación escrita",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Modalidad de admisión:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F13SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMU_ESCR4 <- SaberPro %>% select(YEAR, MOD_ADM, PUNT_COMU_ESCR) %>% group_by(YEAR, MOD_ADM) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMU_ESCR),1), "Desv. estándar" = round(sd(PUNT_COMU_ESCR),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMU_ESCR4,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de comunicación escrita por modalidad de admisión y año",
+  colorHead = "#4CFF49"
+)
+```
+
+<br>
+
+#### Información por estrato
+
+A continuación, la figura \@ref(fig:F14SaberCE) presenta, respectivamente, la evolución histórica del puntaje de comunicación escrita -*por año*- según el estrato.
+
+```{r F14SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMU_ESCR,
+  grupo1   = YEAR,
+  grupo2 = ESTRATO,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de comunicación escrita",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Estrato:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F16SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMU_ESCR5 <- SaberPro %>% select(YEAR, ESTRATO, PUNT_COMU_ESCR) %>% group_by(YEAR, ESTRATO) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMU_ESCR),1), "Desv. estándar" = round(sd(PUNT_COMU_ESCR),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMU_ESCR5,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de comunicación escrita por estrato y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Estrato","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por PBM
+
+A continuación, la figura \@ref(fig:F17SaberCE) presenta, respectivamente, la evolución histórica del puntaje de comunicación escrita -*por año*- según el Puntaje Básico de Matricula (PBM).
+
+```{r F17SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMU_ESCR,
+  grupo1   = YEAR,
+  grupo2 = PBM,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de comunicación escrita",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "PBM:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F19SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMU_ESCR6 <- SaberPro %>% select(YEAR, PBM, PUNT_COMU_ESCR) %>% group_by(YEAR, PBM) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMU_ESCR),1), "Desv. estándar" = round(sd(PUNT_COMU_ESCR),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMU_ESCR6,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de comunicación escrita por PBM y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "PBM","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+<br>
+
+#### Información por nacionalidad
+
+A continuación, la figura \@ref(fig:F20SaberCE) presenta, respectivamente, la evolución histórica del puntaje de razonamiento cuantitativo -*por año*- según la nacionalidad.
+
+```{r F20SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMU_ESCR,
+  grupo1   = YEAR,
+  grupo2 = NACIONALIDAD,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de comunicación escrita",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Nacionalidad:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F22SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMU_ESCR7 <- SaberPro %>% select(YEAR, NACIONALIDAD, PUNT_COMU_ESCR) %>% group_by(YEAR, NACIONALIDAD) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMU_ESCR),1), "Desv. estándar" = round(sd(PUNT_COMU_ESCR),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMU_ESCR7,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de comunicación escrita por nacionalidad y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Nacionalidad","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+#### Información por departamentos y municipios de procedencia
+
+A continuación, la figura \@ref(fig:F23SaberCE) presenta el mapa actual (último registro) con el puntaje promedio de comunicación escrita por departamentos y municipios de procedencia en la **Sede Palmira**.
+
+```{r F23SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+SaberPro %>% filter(YEAR == ano) %$%
+  Plot.Mapa(depto         = COD_DEP_PROC,
+            mpio          = COD_CIU_PROC,
+            variable = PUNT_COMU_ESCR,
+            estadistico   = "Promedio",
+            tipo          = "DeptoMpio",
+            titulo        = "Puntaje",
+            centroideMapa = "VALLE DEL CAUCA",
+            zoomMapa      = 6,
+            cortes        = list(Deptos = c(0, 10, 100, 300, Inf),
+                                 Mpios  = c(0, 1, 5, 10, 20, Inf)),
+            colores       = list(Deptos = c('#edf8e9','#bae4b3','#74c476','#006d2c'),
+                                 Mpios  = c('#ffffff',  '#5ec962', '#21918c', '#3b528b', '#fde725')),
+            showSedes     = TRUE
+  )
+```
+
+<br>
+
+```{r F24SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMU_ESCR8 <- SaberPro %>% select(YEAR, DEP_PROC, CIU_PROC, PUNT_COMU_ESCR) %>% group_by(YEAR, DEP_PROC, CIU_PROC) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMU_ESCR),1), "Desv. estándar" = round(sd(PUNT_COMU_ESCR),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMU_ESCR8,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de comunicación escrita por departamento, municipio y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Departamento procedencia","Ciudad procedencia","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+#### Información por área del conocimiento
+
+A continuación, la figura \@ref(fig:F25SaberCE) presenta, respectivamente, la evolución histórica del puntaje de comunicación escrita -*por año*- según el área de conocimiento SNIES.
+
+```{r F25SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+Plot.Boxplot(
+  datos    = SaberPro,
+  variable = PUNT_COMU_ESCR,
+  grupo1   = YEAR,
+  grupo2 = AREAC_SNIES,
+  outliers = FALSE,
+  ylim     = c(0,300),
+  titulo   = "Puntaje de comunicación escrita",
+  labelY   = "Puntaje",
+  libreria = "highcharter",
+  estilo   = list(LegendTitle = "Área de conocimiento SNIES:", hc.Tema = tema, hc.Credits = Msj)
+)
+```
+
+<br>
+
+```{r F27SaberCE, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+TABLA_PUNT_COMU_ESCR9 <- SaberPro %>% select(YEAR, AREAC_SNIES, PUNT_COMU_ESCR) %>% group_by(YEAR, AREAC_SNIES) %>% summarise("Puntaje Promedio" = round(mean(PUNT_COMU_ESCR),1), "Desv. estándar" = round(sd(PUNT_COMU_ESCR),1), "Total"=n()) %>% ungroup() %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+Tabla.General(
+  datos = TABLA_PUNT_COMU_ESCR9,
+  filtros = TRUE,
+  encabezado = "Puntaje promedio de comunicación escrita por área de conocimiento y año",
+  colorHead = "#4CFF49",
+  colNames = c("Año", "Área de conocimiento","Puntaje Promedio","Desv. estándar","Total")
+)
+```
+
+### Tabla agregada
+
+A continuación, la tabla \@ref(fig:FTablaSaber) presenta los datos por **año, sexo, rango de edad, tipo de colegio, modalidad de admisión, estrato, Puntaje Básico de Matricula (PBM), nacionalidad, departamento de procedencia, ciudad de procedencia, área de conocimiento SNIES, puntaje global y puntaje de cada uno de los componentes** de quienes presentaron la prueba en la **Sede Palmira**.
+
+Los interesados en *imprimir*, *copiar* o *descargar* estas cifras, pueden hacerlo a través de las múltiples opciones que se ofrecen en la parte superior izquierda de la tabla que se presenta a continuación (Copiar, CSV, Excel, PDF e Imprimir). Así mismo, esta tabla, dada su naturaleza web, permiten filtrar los resultados por aquellas variables de interés.
+
+<br>
+
+```{r FTablaSaber, echo=FALSE, message=FALSE, warning=FALSE, fig.cap='Fuente: Dirección Nacional de Planeación y Estadística con base en información de la Dirección Nacional de Admisiones'}
+
+Saber_tabla <- SaberPro %>% select(YEAR, SEXO, CAT_EDAD, TIPO_COL, MOD_ADM, ESTRATO, PBM, NACIONALIDAD, CIU_PROC, AREAC_SNIES, PUNTAJE_GLOBAL, PUNT_COMP_CIUD,PUNT_COMU_ESCR,PUNT_INGLES, PUNT_LECT_CRIT, PUNT_RAZO_CUANT) %>% mutate(across(where(is.character), replace_na,  replace = "SIN INFORMACIÓN")) 
+
+#Tabla en HTML
+UnalR::Tabla.General(datos = Saber_tabla,
+                     encabezado = "Tabla histórico puntajes de la prueba Saber Pro y variables de interés", 
+                     colorHead = "#4CFF49",
+                     colNames = c("Año","Sexo","Edad","Tipo de colegio","Modalidad de admisión","Estrato","PBM","Nacionalidad","Ciudad de procedencia","Área de conocimiento SNIES","Puntaje global","Puntaje Competencias ciudadanas", "Puntaje Comunicación escrita","Puntaje Inglés","Puntaje Lectura crítica","Puntaje Razonamiento cuantitativo"))
+
+```
+
